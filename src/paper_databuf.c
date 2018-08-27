@@ -61,6 +61,12 @@ static struct timespec now;
  * The same comments apply to paper_output_databuf_t.
  */
 
+
+/* -----------------
+ *   INPUT BUFFERS
+ * ----------------- 
+ */
+
 /*
  * Create, if needed, and attach to paper_input_databuf shared memory.
  */
@@ -133,7 +139,15 @@ int paper_input_databuf_set_filled(paper_input_databuf_t *d, int block_id)
     return hashpipe_databuf_set_filled((hashpipe_databuf_t *)d, block_id);
 }
 
-hashpipe_databuf_t *paper_gpu_input_databuf_create(int instance_id, int databuf_id)
+/* --------------------
+ *   STRIPPER BUFFERS
+ * --------------------
+ */
+
+/*
+ * Create, if needed, and attach to paper_stripper_databuf shared memory.
+ */
+hashpipe_databuf_t *paper_stripper_databuf_create(int instance_id, int databuf_id)
 {
 #ifdef DEBUG_SEMS
     // Init clock variables
@@ -147,21 +161,58 @@ hashpipe_databuf_t *paper_gpu_input_databuf_create(int instance_id, int databuf_
     /* Calc databuf sizes */
     size_t header_size = sizeof(hashpipe_databuf_t)
                        + sizeof(hashpipe_databuf_cache_alignment);
-    size_t block_size  = sizeof(paper_gpu_input_block_t);
-    int    n_block = N_GPU_INPUT_BLOCKS;
+    size_t block_size  = sizeof(paper_stripper_block_t);
+    int    n_block = N_INPUT_BLOCKS + N_DEBUG_INPUT_BLOCKS;
 
     return hashpipe_databuf_create(
         instance_id, databuf_id, header_size, block_size, n_block);
 }
 
-hashpipe_databuf_t *paper_output_databuf_create(int instance_id, int databuf_id)
+int paper_stripper_databuf_wait_free(paper_stripper_databuf_t *d, int block_id)
 {
-    /* Calc databuf sizes */
-    size_t header_size = sizeof(hashpipe_databuf_t)
-                       + sizeof(hashpipe_databuf_cache_alignment);
-    size_t block_size  = sizeof(paper_output_block_t);
-    int    n_block = N_OUTPUT_BLOCKS;
-
-    return hashpipe_databuf_create(
-        instance_id, databuf_id, header_size, block_size, n_block);
+    int rv;
+    SEMLOG(d, "wait free");
+    rv = hashpipe_databuf_wait_free((hashpipe_databuf_t *)d, block_id);
+    SEMLOG(d, "got  free");
+    return rv;
 }
+
+int paper_stripper_databuf_busywait_free(paper_stripper_databuf_t *d, int block_id)
+{
+    int rv;
+    SEMLOG(d, "busy-wait free");
+    rv = hashpipe_databuf_busywait_free((hashpipe_databuf_t *)d, block_id);
+    SEMLOG(d, "busy-got  free");
+    return rv;
+}
+
+int paper_stripper_databuf_wait_filled(paper_stripper_databuf_t *d, int block_id)
+{
+    int rv;
+    SEMLOG(d, "wait fill");
+    rv = hashpipe_databuf_wait_filled((hashpipe_databuf_t *)d, block_id);
+    SEMLOG(d, "got  fill");
+    return rv;
+}
+
+int paper_stripper_databuf_busywait_filled(paper_stripper_databuf_t *d, int block_id)
+{
+    int rv;
+    SEMLOG(d, "busy-wait fill");
+    rv = hashpipe_databuf_busywait_filled((hashpipe_databuf_t *)d, block_id);
+    SEMLOG(d, "busy-got  fill");
+    return rv;
+}
+
+int paper_stripper_databuf_set_free(paper_stripper_databuf_t *d, int block_id)
+{
+    SEMLOG(d, "set  free");
+    return hashpipe_databuf_set_free((hashpipe_databuf_t *)d, block_id);
+}
+
+int paper_stripper_databuf_set_filled(paper_stripper_databuf_t *d, int block_id)
+{
+    SEMLOG(d, "set  fill");
+    return hashpipe_databuf_set_filled((hashpipe_databuf_t *)d, block_id);
+}
+
