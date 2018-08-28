@@ -27,11 +27,9 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
     /* Main loop */
     int rv;              // store return of buffer status calls
     uint64_t mcnt = 0;   // mcnt of each block
-    char *indata;
-    char *outdata;       // typecast the data block into a char pointer
-                         // to allow incrementing by a byte.
-
-    int inoffset, outoffset;
+    uint8_t *indata;     // typecast the data block into a char pointer
+    uint8_t *outdata;    // to allow incrementing by a byte.
+    uint64_t inoffset, outoffset;
     int m,a,p,c,t;
     int iblk = 0;
     int oblk = 0;
@@ -62,15 +60,20 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
             }
         }
 
+        fprintf(stderr, "Got new data!  in_blk:%d  out_blk:%d\n", iblk, oblk);
         /*Got new data! Copy into new buffer*/
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "stripping");
         hashpipe_status_unlock_safe(&st);
+        mcnt = idb->block[iblk].header.mcnt;
 
         /* Cast data pointer to char to increment
            in 8 bits instead of 64 bits. */
-        indata = (char *)idb->block[iblk].data;
-        outdata = (char *)odb->block[oblk].data;
+        indata = (uint8_t *)idb->block[iblk].data;
+        outdata = (uint8_t *)odb->block[oblk].data;
+
+        fprintf(stderr,"Input shared mem loc:%p\n",indata);
+        fprintf(stderr,"Output shared mem loc:%p\n",outdata);
         
         odb->block[oblk].header.good_data = 1;
         odb->block[oblk].header.mcnt = mcnt;
@@ -82,7 +85,7 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
                 for(p=0; p<Np; p++){
                   inoffset  = paper_input_databuf_data_idx8(m,a,p,c,t); 
                   outoffset = paper_stripper_databuf_data_idx8(m,a,p,c,t);
-                  memcpy(&outdata+outoffset, &indata+inoffset, 1); 
+                  memcpy(outdata+outoffset, indata+inoffset, 1);
                 }
               }
             }
