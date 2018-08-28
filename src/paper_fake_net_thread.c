@@ -26,10 +26,10 @@ static void *fake_thread_run(hashpipe_thread_args_t * args){
     /* Main loop */
     int rv;              // store return of buffer status calls
     uint64_t mcnt = 0;   // mcnt of each block
-    uint64_t *data;
+    uint8_t *data;
     int m,a,p,c,t;
     int block_idx = 0;
-    uint64_t fake_data = 0xaa;
+    uint8_t fake_data = 0xaa;
 
     while (run_threads()) {
 
@@ -66,22 +66,18 @@ static void *fake_thread_run(hashpipe_thread_args_t * args){
         mcnt+=Nm;
 
         // Set all block data to zero
-        data = db->block[block_idx].data;
+        data = (uint8_t *)db->block[block_idx].data;
         memset(data, 0, N_BYTES_PER_BLOCK);
 
-        for(m=0; m<Nm; m++){
-           for(a=0; a<Na; a++){
-              for(c=0; c<Nc; c++){
-                 for(t=0; t<Nt; t++){
+        for(m=0; m<Nm; m++)
+           for(a=0; a<Na; a++)
+              for(c=0; c<Nc; c++)
+                 for(t=0; t<Nt; t++)
                     for(p=0; p<Np; p++){
-                       //fprintf(stderr,"mcnt:%d,  ant:%d,  chan:%d,  t:%d,   pol:%d\n",m,a,c,t,p);
-                       fake_data = (c%256) + a;
-                       memcpy(&data[paper_input_databuf_data_idx(m,a,c,t)], &fake_data, 8);
+                       fake_data = (uint8_t)(a*2 + p); //(uint8_t)((c%256) + a);
+                       memcpy(data+paper_input_databuf_data_idx8(m,a,p,c,t), 
+                              &fake_data, 1);
                     }
-                 }
-              }
-           }
-        }
  
         // Mark block as full
         paper_input_databuf_set_filled(db, block_idx);
