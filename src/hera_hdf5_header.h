@@ -1,7 +1,23 @@
 #ifndef _HERA_HDF5_HEADER_H
 #define HERA_HDF5_HEADER_H
 
-#include "hera_databuf.h"
+#include "paper_databuf.h"
+#include <hdf5.h>
+#include <time.h>
+
+#define N_BLOCK_PER_FILE 4096
+#define N_TIME_PER_FILE  (N_BLOCK_PER_FILE * N_TIME_PER_BLOCK)
+
+#define RANK             4
+#define DIM0             N_ANTS
+#define DIM1             2     //pols
+#define DIM2             N_STRP_CHANS_PER_X
+#define DIM3             N_TIME_PER_FILE
+
+#define DIM0_SUB         N_ANTS
+#define DIM1_SUB         2
+#define DIM2_SUB         N_STRP_CHANS_PER_X
+#define DIM3_SUB         N_TIME_PER_BLOCK   
 
 typedef struct hdf5_extra_keywords{
     uint64_t kwargs;
