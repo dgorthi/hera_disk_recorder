@@ -16,8 +16,6 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include <xgpu.h>
-
 #include "hashpipe.h"
 #include "paper_databuf.h"
 
