@@ -62,7 +62,6 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
     hsize_t dims[4] = {DIM0, DIM1, DIM2, DIM3};
     hsize_t dimsm[4] = {DIM0_SUB, DIM1_SUB, DIM2_SUB, DIM3_SUB};
     herr_t status;
-    hsize_t offset[] = {0, 0, 0, 0};
     hsize_t count[] = {1,1,1,1};
     hsize_t stride[] = {1,1,1,1};
     hsize_t block[] = {N_ANTS, 2, N_STRP_CHANS_PER_X, N_TIME_PER_BLOCK};
@@ -98,6 +97,7 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
           status = H5Sclose(dataspace_id);
           status = H5Dclose(dataset_id);
           status = H5Fclose(file_id);      
+          status = status;
        }
 
        /*Wait for new block*/

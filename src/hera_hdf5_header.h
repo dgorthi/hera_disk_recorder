@@ -19,6 +19,15 @@
 #define DIM2_SUB         N_STRP_CHANS_PER_X
 #define DIM3_SUB         N_TIME_PER_BLOCK   
 
+#define H5_WRITE_HEADER_I64(group_id, h5_name, val, dims) \
+  dataspace_id = H5Screate_simple(1, dims, NULL); \
+  dataset_id = H5Dcreate2(group_id, h5_name, H5T_STD_I64LE, dataspace_id,\
+                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); \
+  H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &(val)); \
+  H5Sclose(dataspace_id); \
+  H5Dclose(dataset_id)
+
+
 typedef struct hdf5_extra_keywords{
     uint64_t kwargs;
 } hdf5_extra_keywords_t;
