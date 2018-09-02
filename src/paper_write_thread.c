@@ -55,19 +55,27 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
     uint64_t mcnt = 0;
     uint64_t *data;
     int block_id;
-    uint64_t nblks = 0;
+    uint64_t nblks = N_BLOCK_PER_FILE;
     char filename[4096];
 
-    hid_t file_id, dataset_id, dataspace_id, memspace_id;
+    hid_t file_id, dataset_id, ds_file_id, ds_mem_id, ds_block_id;
+    hsize_t mem_dims[1] = {(DIM0*DIM1*DIM2*DIM3)};
+    
     hsize_t dims[4] = {DIM0, DIM1, DIM2, DIM3};
-    hsize_t dimsm[4] = {DIM0_SUB, DIM1_SUB, DIM2_SUB, DIM3_SUB};
+    hsize_t dimsm[1] = {(DIM0_SUB*DIM1_SUB*DIM2_SUB*DIM3_SUB)};
     herr_t status;
     hsize_t count[] = {1,1,1,1};
     hsize_t stride[] = {1,1,1,1};
     hsize_t block[] = {N_ANTS, 2, N_STRP_CHANS_PER_X, N_TIME_PER_BLOCK};
-    uint64_t *init_data;
+    uint8_t *init_data;
 
-    init_data = (uint64_t *)calloc(N_BLOCK_PER_FILE, N_BYTES_PER_STRP_BLOCK);
+    init_data = (uint8_t *)calloc(DIM0*DIM1*DIM2*DIM3,sizeof(uint8_t));
+    ds_mem_id = H5Screate_simple(1, mem_dims, NULL); 
+    printf("Bytes per block: %d\n", N_BYTES_PER_STRP_BLOCK);
+    printf("Blocks per file: %d\n", N_BLOCK_PER_FILE);
+    printf("Bytes per file: %lu\n", sizeof(init_data));
+
+    ds_file_id = H5Screate_simple(RANK, dims, NULL);
 
     while (run_threads()){
        
@@ -78,8 +86,8 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
        hashpipe_status_unlock_safe(&st);
        sleep(1);
 
-       /*Check if you need to create a new file. Populate the header.*/
-       if (nblks%N_BLOCK_PER_FILE ==0){
+       /*Create a new file. Populate the header.*/
+       if (nblks == N_BLOCK_PER_FILE){
 
           /*Create a hdf5 file, set header, initialize a dataset and wait for data*/
           sprintf(filename, "hera_volt_data_%lu.h5", (unsigned long)time(NULL));
@@ -88,16 +96,21 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
           hdf5_header_t *header = initialize_header();
           write_hdf5_header(header, file_id);
 
-          dataspace_id = H5Screate_simple(RANK, dims, NULL);
-          dataset_id = H5Dcreate(file_id, "data", H5T_NATIVE_UINT8, dataspace_id,
+          dataset_id = H5Dcreate(file_id, "data", H5T_STD_U8BE, ds_file_id,
                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-          status = H5Dwrite(dataset_id, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL,
+
+          status = H5Dwrite(dataset_id, H5T_NATIVE_UINT8, ds_mem_id, ds_file_id,
                             H5P_DEFAULT, init_data);
 
-          status = H5Sclose(dataspace_id);
+          printf("Wrote init dataset to file\n");
+
+          status = H5Sclose(ds_file_id);
+          status = H5Sclose(ds_mem_id);
           status = H5Dclose(dataset_id);
           status = H5Fclose(file_id);      
           status = status;
+
+          nblks = 0;
        }
 
        /*Wait for new block*/
@@ -114,23 +127,24 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
           }
        }
 
-      /*Reopen hdf5 file with filename in append mode and write more data.*/
+      /*Reopen hdf5 file with filename and rewrite the received block of data.*/
       file_id = H5Fopen(filename, H5F_ACC_RDWR, H5P_DEFAULT);
       dataset_id = H5Dopen(file_id, "data", H5P_DEFAULT);
 
       hsize_t offset[4] = {0, 0, 0, nblks*N_TIME_PER_BLOCK};
-      memspace_id = H5Screate_simple(RANK, dimsm, NULL);
-      dataspace_id = H5Dget_space(dataset_id);
-      status = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset,
+      ds_block_id = H5Screate_simple(1, dimsm, NULL);
+
+      ds_file_id = H5Dget_space(dataset_id);
+      status = H5Sselect_hyperslab(ds_file_id, H5S_SELECT_SET, offset,
                                    stride, count, block);
 
       /*Copy data over*/
       data = (uint64_t *)idb->block[block_id].data;
-      status = H5Dwrite(dataset_id, H5T_NATIVE_UINT8, memspace_id,
-                        H5S_ALL, H5P_DEFAULT, data);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_UINT8, ds_block_id, ds_file_id, 
+                        H5P_DEFAULT, data);
 
-      status = H5Sclose(dataspace_id);
-      status = H5Sclose(memspace_id);
+      status = H5Sclose(ds_file_id);
+      status = H5Sclose(ds_block_id);
       status = H5Dclose(dataset_id);
       status = H5Fclose(file_id);
 
@@ -139,6 +153,7 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
 
       // Setup for next block
       block_id = (block_id + 1)%idb->header.n_block;
+      nblks++;
 
       /* Will exit if thread has been cancelled */
       pthread_testcancel();
@@ -150,7 +165,7 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
 
 
 hashpipe_thread_desc_t paper_write_thread = {
-    name: "paper_wite_thread",
+    name: "paper_write_thread",
     skey: "WRITESTAT",
     init: NULL,
     run: paper_write_thread_run,
