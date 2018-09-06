@@ -60,7 +60,7 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
             }
         }
 
-        fprintf(stderr, "Got new data!  in_blk:%d  out_blk:%d\n", iblk, oblk);
+        //fprintf(stderr, "Got new data!  in_blk:%d  out_blk:%d\n", iblk, oblk);
         /*Got new data! Copy into new buffer*/
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "stripping");
@@ -72,8 +72,8 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
         indata = (uint8_t *)idb->block[iblk].data;
         outdata = (uint8_t *)odb->block[oblk].data;
 
-        fprintf(stderr,"Input shared mem loc:%p\n",indata);
-        fprintf(stderr,"Output shared mem loc:%p\n",outdata);
+        //fprintf(stderr,"Input shared mem loc:%p\n",indata);
+        //fprintf(stderr,"Output shared mem loc:%p\n",outdata);
         
         odb->block[oblk].header.good_data = 1;
         odb->block[oblk].header.mcnt = mcnt;
