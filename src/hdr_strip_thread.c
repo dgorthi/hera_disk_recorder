@@ -1,5 +1,5 @@
 /*
- * paper_strip_thread.c
+ * hdr_strip_thread.c
  *
  * This thread will remove all but 
  * processing pipelines to be tested without the network portion of PAPER.
@@ -16,11 +16,11 @@
 #include <sys/types.h>
 
 #include "hashpipe.h"
-#include "paper_databuf.h"
+#include "hdr_databuf.h"
 
-static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
-    paper_input_databuf_t    *idb = (paper_input_databuf_t *)args->ibuf;  
-    paper_stripper_databuf_t *odb = (paper_stripper_databuf_t *)args->obuf;
+static void *hdr_strip_thread_run(hashpipe_thread_args_t * args){
+    hdr_input_databuf_t    *idb = (hdr_input_databuf_t *)args->ibuf;  
+    hdr_stripper_databuf_t *odb = (hdr_stripper_databuf_t *)args->obuf;
     hashpipe_status_t st = args->st;
     const char *status_key = args->thread_desc->skey;
 
@@ -47,7 +47,7 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
         /* Wait for new block to be filled, then copy the
          * relevant data and clear it.
          */
-        while ((rv=paper_input_databuf_wait_filled(idb, iblk))!= HASHPIPE_OK){
+        while ((rv=hdr_input_databuf_wait_filled(idb, iblk))!= HASHPIPE_OK){
             if (rv==HASHPIPE_TIMEOUT){
                 hashpipe_status_lock_safe(&st);
                 hputs(st.buf, status_key, "blocked");
@@ -83,8 +83,8 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
             for(c=0; c<Nsc; c++){
               for(t=0; t<Nt; t++){
                 for(p=0; p<Np; p++){
-                  inoffset  = paper_input_databuf_data_idx8(m,a,p,c,t); 
-                  outoffset = paper_stripper_databuf_data_idx8(m,a,p,c,t);
+                  inoffset  = hdr_input_databuf_data_idx8(m,a,p,c,t); 
+                  outoffset = hdr_stripper_databuf_data_idx8(m,a,p,c,t);
                   memcpy(outdata+outoffset, indata+inoffset, 1);
                 }
               }
@@ -94,8 +94,8 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
         
 
         // Mark input block as free, output block as filled
-        paper_stripper_databuf_set_filled(odb, oblk);
-        paper_input_databuf_set_free(idb, iblk);
+        hdr_stripper_databuf_set_filled(odb, oblk);
+        hdr_input_databuf_set_free(idb, iblk);
 
         // Setup for next block
         iblk = (iblk + 1)%idb->header.n_block;
@@ -110,15 +110,15 @@ static void *paper_strip_thread_run(hashpipe_thread_args_t * args){
 }
 
 
-hashpipe_thread_desc_t paper_strip_thread = {
-    name: "paper_strip_thread",
+hashpipe_thread_desc_t hdr_strip_thread = {
+    name: "hdr_strip_thread",
     skey: "STRPSTAT",
     init: NULL,
-    run: paper_strip_thread_run,
-    ibuf_desc: {paper_input_databuf_create},
-    obuf_desc: {paper_stripper_databuf_create}
+    run: hdr_strip_thread_run,
+    ibuf_desc: {hdr_input_databuf_create},
+    obuf_desc: {hdr_stripper_databuf_create}
 };
 
 static __attribute__((constructor)) void ctor(){
-    register_hashpipe_thread(&paper_strip_thread);
+    register_hashpipe_thread(&hdr_strip_thread);
 }

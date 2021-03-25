@@ -1,4 +1,4 @@
-/* paper_databuf.c
+/* hdr_databuf.c
  *
  * Routines for creating and accessing main data transfer
  * buffer in shared memory.
@@ -34,31 +34,31 @@ static struct timespec now;
 #define SEMLOG(pd, msg)
 #endif // DEBUG_SEMS
 
-#include "paper_databuf.h"
+#include "hdr_databuf.h"
 
 /*
- * Since the first element of paper_input_databuf_t is a hashpipe_databuf_t, a
- * pointer to a paper_input_databuf_t is also a pointer to a
- * hashpipe_databuf_t.  This allows a pointer to a paper_input_databuf_t to be
+ * Since the first element of hdr_input_databuf_t is a hashpipe_databuf_t, a
+ * pointer to a hdr_input_databuf_t is also a pointer to a
+ * hashpipe_databuf_t.  This allows a pointer to a hdr_input_databuf_t to be
  * passed, with appropriate casting, to functions that accept a pointer to a
  * hashpipe_databuf_t.  This allows the reuse of many of the functions in
- * hashpipe_databuf.c.  This is a form of inheritence: a paper_input_databuf_t
+ * hashpipe_databuf.c.  This is a form of inheritence: a hdr_input_databuf_t
  * is a hashpipe_databuf_t (plus additional specializations).
  *
  * For hashpipe_databuf.c function...
  *
  *   hashpipe_databuf_xyzzy(hashpipe_databuf_t *d...)
  *
- * ...a corresponding paper_databuf.c function...
+ * ...a corresponding hdr_databuf.c function...
  *
- *   paper_input_databuf_xyzzy(paper_input_databuf_t *d...)
+ *   hdr_input_databuf_xyzzy(hdr_input_databuf_t *d...)
  *
  * ...can be created that passes its d parameter to hashpipe_databuf_xyzzy with
  * appropraite casting.  In some cases (e.g. hashpipe_databuf_attach), that's all
  * that's needed, but other cases may require additional functionality in the
- * paper_input_buffer function.
+ * hdr_input_buffer function.
  *
- * The same comments apply to paper_output_databuf_t.
+ * The same comments apply to hdr_output_databuf_t.
  */
 
 
@@ -68,9 +68,9 @@ static struct timespec now;
  */
 
 /*
- * Create, if needed, and attach to paper_input_databuf shared memory.
+ * Create, if needed, and attach to hdr_input_databuf shared memory.
  */
-hashpipe_databuf_t *paper_input_databuf_create(int instance_id, int databuf_id)
+hashpipe_databuf_t *hdr_input_databuf_create(int instance_id, int databuf_id)
 {
 #ifdef DEBUG_SEMS
     // Init clock variables
@@ -84,14 +84,14 @@ hashpipe_databuf_t *paper_input_databuf_create(int instance_id, int databuf_id)
     /* Calc databuf sizes */
     size_t header_size = sizeof(hashpipe_databuf_t)
                        + sizeof(hashpipe_databuf_cache_alignment);
-    size_t block_size  = sizeof(paper_input_block_t);
+    size_t block_size  = sizeof(hdr_input_block_t);
     int    n_block = N_INPUT_BLOCKS + N_DEBUG_INPUT_BLOCKS;
 
     return hashpipe_databuf_create(
         instance_id, databuf_id, header_size, block_size, n_block);
 }
 
-int paper_input_databuf_wait_free(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_wait_free(hdr_input_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "wait free");
@@ -100,7 +100,7 @@ int paper_input_databuf_wait_free(paper_input_databuf_t *d, int block_id)
     return rv;
 }
 
-int paper_input_databuf_busywait_free(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_busywait_free(hdr_input_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "busy-wait free");
@@ -109,7 +109,7 @@ int paper_input_databuf_busywait_free(paper_input_databuf_t *d, int block_id)
     return rv;
 }
 
-int paper_input_databuf_wait_filled(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_wait_filled(hdr_input_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "wait fill");
@@ -118,7 +118,7 @@ int paper_input_databuf_wait_filled(paper_input_databuf_t *d, int block_id)
     return rv;
 }
 
-int paper_input_databuf_busywait_filled(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_busywait_filled(hdr_input_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "busy-wait fill");
@@ -127,13 +127,13 @@ int paper_input_databuf_busywait_filled(paper_input_databuf_t *d, int block_id)
     return rv;
 }
 
-int paper_input_databuf_set_free(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_set_free(hdr_input_databuf_t *d, int block_id)
 {
     SEMLOG(d, "set  free");
     return hashpipe_databuf_set_free((hashpipe_databuf_t *)d, block_id);
 }
 
-int paper_input_databuf_set_filled(paper_input_databuf_t *d, int block_id)
+int hdr_input_databuf_set_filled(hdr_input_databuf_t *d, int block_id)
 {
     SEMLOG(d, "set  fill");
     return hashpipe_databuf_set_filled((hashpipe_databuf_t *)d, block_id);
@@ -145,9 +145,9 @@ int paper_input_databuf_set_filled(paper_input_databuf_t *d, int block_id)
  */
 
 /*
- * Create, if needed, and attach to paper_stripper_databuf shared memory.
+ * Create, if needed, and attach to hdr_stripper_databuf shared memory.
  */
-hashpipe_databuf_t *paper_stripper_databuf_create(int instance_id, int databuf_id)
+hashpipe_databuf_t *hdr_stripper_databuf_create(int instance_id, int databuf_id)
 {
 #ifdef DEBUG_SEMS
     // Init clock variables
@@ -161,14 +161,14 @@ hashpipe_databuf_t *paper_stripper_databuf_create(int instance_id, int databuf_i
     /* Calc databuf sizes */
     size_t header_size = sizeof(hashpipe_databuf_t)
                        + sizeof(hashpipe_databuf_cache_alignment);
-    size_t block_size  = sizeof(paper_stripper_block_t);
+    size_t block_size  = sizeof(hdr_stripper_block_t);
     int    n_block = N_INPUT_BLOCKS + N_DEBUG_INPUT_BLOCKS;
 
     return hashpipe_databuf_create(
         instance_id, databuf_id, header_size, block_size, n_block);
 }
 
-int paper_stripper_databuf_wait_free(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_wait_free(hdr_stripper_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "wait free");
@@ -177,7 +177,7 @@ int paper_stripper_databuf_wait_free(paper_stripper_databuf_t *d, int block_id)
     return rv;
 }
 
-int paper_stripper_databuf_busywait_free(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_busywait_free(hdr_stripper_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "busy-wait free");
@@ -186,7 +186,7 @@ int paper_stripper_databuf_busywait_free(paper_stripper_databuf_t *d, int block_
     return rv;
 }
 
-int paper_stripper_databuf_wait_filled(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_wait_filled(hdr_stripper_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "wait fill");
@@ -195,7 +195,7 @@ int paper_stripper_databuf_wait_filled(paper_stripper_databuf_t *d, int block_id
     return rv;
 }
 
-int paper_stripper_databuf_busywait_filled(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_busywait_filled(hdr_stripper_databuf_t *d, int block_id)
 {
     int rv;
     SEMLOG(d, "busy-wait fill");
@@ -204,13 +204,13 @@ int paper_stripper_databuf_busywait_filled(paper_stripper_databuf_t *d, int bloc
     return rv;
 }
 
-int paper_stripper_databuf_set_free(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_set_free(hdr_stripper_databuf_t *d, int block_id)
 {
     SEMLOG(d, "set  free");
     return hashpipe_databuf_set_free((hashpipe_databuf_t *)d, block_id);
 }
 
-int paper_stripper_databuf_set_filled(paper_stripper_databuf_t *d, int block_id)
+int hdr_stripper_databuf_set_filled(hdr_stripper_databuf_t *d, int block_id)
 {
     SEMLOG(d, "set  fill");
     return hashpipe_databuf_set_filled((hashpipe_databuf_t *)d, block_id);

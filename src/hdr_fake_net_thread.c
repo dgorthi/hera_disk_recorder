@@ -1,5 +1,5 @@
 /*
- * paper_fake_net_thread.c
+ * hdr_fake_net_thread.c
  *
  * Routine to write fake data into shared memory blocks.  This allows the
  * processing pipelines to be tested without the network portion of PAPER.
@@ -16,10 +16,10 @@
 #include <sys/types.h>
 
 #include "hashpipe.h"
-#include "paper_databuf.h"
+#include "hdr_databuf.h"
 
 static void *fake_thread_run(hashpipe_thread_args_t * args){
-    paper_input_databuf_t *db = (paper_input_databuf_t *)args->obuf;
+    hdr_input_databuf_t *db = (hdr_input_databuf_t *)args->obuf;
     hashpipe_status_t st = args->st;
     const char *status_key = args->thread_desc->skey;
 
@@ -43,7 +43,7 @@ static void *fake_thread_run(hashpipe_thread_args_t * args){
         /* Wait for new block to be free, then clear it
          * if necessary and fill its header with new values.
          */
-        while ((rv=paper_input_databuf_wait_free(db, block_idx))!= HASHPIPE_OK){
+        while ((rv=hdr_input_databuf_wait_free(db, block_idx))!= HASHPIPE_OK){
             if (rv==HASHPIPE_TIMEOUT){
                 hashpipe_status_lock_safe(&st);
                 hputs(st.buf, status_key, "blocked");
@@ -75,12 +75,12 @@ static void *fake_thread_run(hashpipe_thread_args_t * args){
                  for(t=0; t<Nt; t++)
                     for(p=0; p<Np; p++){
                        fake_data = (uint8_t)(a*2 + p); //(uint8_t)((c%256) + a);
-                       memcpy(data+paper_input_databuf_data_idx8(m,a,p,c,t), 
+                       memcpy(data+hdr_input_databuf_data_idx8(m,a,p,c,t), 
                               &fake_data, 1);
                     }
  
         // Mark block as full
-        paper_input_databuf_set_filled(db, block_idx);
+        hdr_input_databuf_set_filled(db, block_idx);
 
         // Setup for next block
         block_idx = (block_idx + 1) % db->header.n_block;
@@ -94,12 +94,12 @@ static void *fake_thread_run(hashpipe_thread_args_t * args){
 }
 
 static hashpipe_thread_desc_t fake_net_thread = {
-    name: "paper_fake_net_thread",
+    name: "hdr_fake_net_thread",
     skey: "FAKESTAT",
     init: NULL,
     run:  fake_thread_run,
     ibuf_desc: {NULL},
-    obuf_desc: {paper_input_databuf_create}
+    obuf_desc: {hdr_input_databuf_create}
 };
 
 static __attribute__((constructor)) void ctor(){

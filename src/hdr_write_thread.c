@@ -8,8 +8,8 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include "hashpipe.h"
-#include "hera_hdf5_header.h"
-#include "paper_databuf.h"
+#include "hdr_hdf5_header.h"
+#include "hdr_databuf.h"
 
 struct hdf5_header *initialize_header(){
    int i;
@@ -48,8 +48,8 @@ void write_hdf5_header(hdf5_header_t *header, hid_t file_id){
    H5Gclose(group_id);
 }
 
-void *paper_write_thread_run(hashpipe_thread_args_t *args){
-    paper_stripper_databuf_t *idb = (paper_stripper_databuf_t *)args->ibuf;
+void *hdr_write_thread_run(hashpipe_thread_args_t *args){
+    hdr_stripper_databuf_t *idb = (hdr_stripper_databuf_t *)args->ibuf;
     hashpipe_status_t st = args->st;
     const char *status_key = args->thread_desc->skey;
 
@@ -143,7 +143,7 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
        }
 
        /*Wait for new block*/
-       while ((rv=paper_stripper_databuf_wait_filled(idb, block_id))!=HASHPIPE_OK){
+       while ((rv=hdr_stripper_databuf_wait_filled(idb, block_id))!=HASHPIPE_OK){
           if (rv==HASHPIPE_TIMEOUT){
              hashpipe_status_lock_safe(&st);
              hputs(st.buf, status_key, "blocked");
@@ -193,7 +193,7 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
       status = H5Fclose(h5file);
 
       // Mark input block as free, output block as filled
-      paper_stripper_databuf_set_free(idb, block_id);
+      hdr_stripper_databuf_set_free(idb, block_id);
 
       // Setup for next block
       block_id = (block_id + 1)%idb->header.n_block;
@@ -209,15 +209,15 @@ void *paper_write_thread_run(hashpipe_thread_args_t *args){
 }
 
 
-hashpipe_thread_desc_t paper_write_thread = {
-    name: "paper_write_thread",
+hashpipe_thread_desc_t hdr_write_thread = {
+    name: "hdr_write_thread",
     skey: "WRITESTAT",
     init: NULL,
-    run: paper_write_thread_run,
-    ibuf_desc: {paper_stripper_databuf_create},
+    run: hdr_write_thread_run,
+    ibuf_desc: {hdr_stripper_databuf_create},
     obuf_desc: {NULL} 
 };
 
 static __attribute__((constructor)) void ctor(){
-    register_hashpipe_thread(&paper_write_thread);
+    register_hashpipe_thread(&hdr_write_thread);
 }

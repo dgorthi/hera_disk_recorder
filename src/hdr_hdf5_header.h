@@ -1,7 +1,7 @@
 #ifndef _HERA_HDF5_HEADER_H
 #define HERA_HDF5_HEADER_H
 
-#include "paper_databuf.h"
+#include "hdr_databuf.h"
 #include <hdf5.h>
 #include <time.h>
 

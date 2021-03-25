@@ -101,18 +101,18 @@
 // Number of complex elements = 2
 #define Nx 2
 
-// Computes paper_input_databuf_t data word (uint64_t) offset for complex data
+// Computes hdr_input_databuf_t data word (uint64_t) offset for complex data
 // word corresponding to the given parameters for HERA F engine packets.
 
-//#define paper_input_databuf_data_idx(m,a,c,t) \ //foo
+//#define hdr_input_databuf_data_idx(m,a,c,t) \ //foo
 //  (((((m * Na + a) * (Nc) + c)*Nt + t) * 2) / sizeof(uint64_t))
-#define paper_input_databuf_data_idx(m,a,c,t) \
+#define hdr_input_databuf_data_idx(m,a,c,t) \
   ((((m) * Na*Nc*Nt*Np) + ((a) * Nc*Nt*Np) + ((c)*Nt*Np) + ((t)*Np)) / sizeof(uint64_t))
 
-#define paper_input_databuf_data_idx8(m,a,p,c,t) \
+#define hdr_input_databuf_data_idx8(m,a,p,c,t) \
   (((m) * Na*Nc*Nt*Np) + ((a) * Nc*Nt*Np) + ((c)*Nt*Np) + ((t)*Np) + (p))
 
-#define paper_input_databuf_data_idx256(m,a,c,t) \
+#define hdr_input_databuf_data_idx256(m,a,c,t) \
   ((((((m) * Na) + (a))*Nc + (c))*Nt + (t))*Np / sizeof(__m256i))
   //((((m) * Na*Nc*Nt*Np) + ((a) * Nc*Nt*Np) + ((c)*Nt*Np) + ((t)*Np)) / sizeof(__m256i))
 //TODO  (((((m * Na + a) * (Nc) + c)*Nt + t) * N_INPUTS_PER_PACKET) / sizeof(uint64_t))
@@ -123,76 +123,76 @@
 #define N_DEBUG_INPUT_BLOCKS 0
 #endif
 
-typedef struct paper_input_header {
+typedef struct hdr_input_header {
   int64_t good_data; // functions as a boolean, 64 bit to maintain word alignment
   uint64_t mcnt;     // mcount of first packet
-} paper_input_header_t;
+} hdr_input_header_t;
 
-typedef uint8_t paper_input_header_cache_alignment[
-  CACHE_ALIGNMENT - (sizeof(paper_input_header_t)%CACHE_ALIGNMENT)
+typedef uint8_t hdr_input_header_cache_alignment[
+  CACHE_ALIGNMENT - (sizeof(hdr_input_header_t)%CACHE_ALIGNMENT)
 ];
 
-typedef struct paper_input_block {
-  paper_input_header_t header;
-  paper_input_header_cache_alignment padding; // Maintain cache alignment
+typedef struct hdr_input_block {
+  hdr_input_header_t header;
+  hdr_input_header_cache_alignment padding; // Maintain cache alignment
   uint64_t data[N_BYTES_PER_BLOCK/sizeof(uint64_t)];
-} paper_input_block_t;
+} hdr_input_block_t;
 
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[
   CACHE_ALIGNMENT - (sizeof(hashpipe_databuf_t)%CACHE_ALIGNMENT)
 ];
 
-typedef struct paper_input_databuf {
+typedef struct hdr_input_databuf {
   hashpipe_databuf_t header;
   hashpipe_databuf_cache_alignment padding; // Maintain cache alignment
-  paper_input_block_t block[N_INPUT_BLOCKS+N_DEBUG_INPUT_BLOCKS];
-} paper_input_databuf_t;
+  hdr_input_block_t block[N_INPUT_BLOCKS+N_DEBUG_INPUT_BLOCKS];
+} hdr_input_databuf_t;
 
 
 /*
  * INPUT BUFFER FUNCTIONS
  */
 
-hashpipe_databuf_t *paper_input_databuf_create(int instance_id, int databuf_id);
+hashpipe_databuf_t *hdr_input_databuf_create(int instance_id, int databuf_id);
 
-static inline paper_input_databuf_t *paper_input_databuf_attach(int instance_id, int databuf_id)
+static inline hdr_input_databuf_t *hdr_input_databuf_attach(int instance_id, int databuf_id)
 {
-    return (paper_input_databuf_t *)hashpipe_databuf_attach(instance_id, databuf_id);
+    return (hdr_input_databuf_t *)hashpipe_databuf_attach(instance_id, databuf_id);
 }
 
-static inline int paper_input_databuf_detach(paper_input_databuf_t *d)
+static inline int hdr_input_databuf_detach(hdr_input_databuf_t *d)
 {
     return hashpipe_databuf_detach((hashpipe_databuf_t *)d);
 }
 
-static inline void paper_input_databuf_clear(paper_input_databuf_t *d)
+static inline void hdr_input_databuf_clear(hdr_input_databuf_t *d)
 {
     hashpipe_databuf_clear((hashpipe_databuf_t *)d);
 }
 
-static inline int paper_input_databuf_block_status(paper_input_databuf_t *d, int block_id)
+static inline int hdr_input_databuf_block_status(hdr_input_databuf_t *d, int block_id)
 {
     return hashpipe_databuf_block_status((hashpipe_databuf_t *)d, block_id);
 }
 
-static inline int paper_input_databuf_total_status(paper_input_databuf_t *d)
+static inline int hdr_input_databuf_total_status(hdr_input_databuf_t *d)
 {
     return hashpipe_databuf_total_status((hashpipe_databuf_t *)d);
 }
 
 
-int paper_input_databuf_wait_free(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_wait_free(hdr_input_databuf_t *d, int block_id);
 
-int paper_input_databuf_busywait_free(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_busywait_free(hdr_input_databuf_t *d, int block_id);
 
-int paper_input_databuf_wait_filled(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_wait_filled(hdr_input_databuf_t *d, int block_id);
 
-int paper_input_databuf_busywait_filled(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_busywait_filled(hdr_input_databuf_t *d, int block_id);
 
-int paper_input_databuf_set_free(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_set_free(hdr_input_databuf_t *d, int block_id);
 
-int paper_input_databuf_set_filled(paper_input_databuf_t *d, int block_id);
+int hdr_input_databuf_set_filled(hdr_input_databuf_t *d, int block_id);
 
 
 
@@ -241,87 +241,87 @@ int paper_input_databuf_set_filled(paper_input_databuf_t *d, int block_id);
 
 #define N_BYTES_PER_STRP_BLOCK    (N_TIME_PER_BLOCK*N_STRP_CHANS_PER_X*N_INPUTS)
 
-/* The difference between paper_input_databuf and this buffer is 
+/* The difference between hdr_input_databuf and this buffer is 
  * the ordering of data in the data field and the reduced number of 
  * channels i.e, the indexing of the data will be different. 
  */
 
-#define paper_stripper_databuf_data_idx(m,a,p,c,t) \
+#define hdr_stripper_databuf_data_idx(m,a,p,c,t) \
   ((((a)*Nsc*Nm*Nt*Np) + ((p)*Nsc*Nm*Nt) + ((c)*Nm*Nt) + ((m)*Nt) + (t))/ sizeof(uint64_t))
 
-#define paper_stripper_databuf_data_idx8(m,a,p,c,t) \
+#define hdr_stripper_databuf_data_idx8(m,a,p,c,t) \
   (((a)*Nsc*Nm*Nt*Np) + ((p)*Nsc*Nm*Nt) + ((c)*Nm*Nt) + ((m)*Nt) + (t))
   
-#define paper_stripper_databuf_data_idx256(m,a,p,c,t) \
+#define hdr_stripper_databuf_data_idx256(m,a,p,c,t) \
   ((((a)*Nsc*Nm*Nt*Np) + ((p)*Nsc*Nm*Nt) + ((c)*Nm*Nt) + ((m)*Nt) + (t))/ sizeof(__m256i))
 
-typedef struct paper_stripper_header{
+typedef struct hdr_stripper_header{
    int64_t good_data;  // boolean
    uint64_t mcnt;      //mcount of the first packet
-} paper_stripper_header_t;
+} hdr_stripper_header_t;
 
-typedef uint8_t paper_stripper_header_cache_alignment[
-    CACHE_ALIGNMENT - (sizeof(paper_stripper_header_t)%CACHE_ALIGNMENT)
+typedef uint8_t hdr_stripper_header_cache_alignment[
+    CACHE_ALIGNMENT - (sizeof(hdr_stripper_header_t)%CACHE_ALIGNMENT)
 ];
 
-typedef struct paper_stripper_block{
-    paper_stripper_header_t header;
-    paper_stripper_header_cache_alignment padding;
+typedef struct hdr_stripper_block{
+    hdr_stripper_header_t header;
+    hdr_stripper_header_cache_alignment padding;
     uint64_t data[N_BYTES_PER_STRP_BLOCK/(sizeof(uint64_t))];
-} paper_stripper_block_t;
+} hdr_stripper_block_t;
 
-typedef uint8_t paper_stripper_block_cache_alignment[
-   CACHE_ALIGNMENT - (sizeof(paper_stripper_block_t)%CACHE_ALIGNMENT)
+typedef uint8_t hdr_stripper_block_cache_alignment[
+   CACHE_ALIGNMENT - (sizeof(hdr_stripper_block_t)%CACHE_ALIGNMENT)
 ];
 
-typedef struct paper_stripper_databuf{
+typedef struct hdr_stripper_databuf{
   hashpipe_databuf_t header;
   hashpipe_databuf_cache_alignment padding;
-  paper_stripper_block_t block[N_STRP_BLOCKS + N_DEBUG_STRP_BLOCKS];
-} paper_stripper_databuf_t;
+  hdr_stripper_block_t block[N_STRP_BLOCKS + N_DEBUG_STRP_BLOCKS];
+} hdr_stripper_databuf_t;
 
 /*
  * STRIPPED BUFFER FUNCTIONS
  */
 
-hashpipe_databuf_t *paper_stripper_databuf_create(int instance_id, int databuf_id);
+hashpipe_databuf_t *hdr_stripper_databuf_create(int instance_id, int databuf_id);
 
-static inline paper_stripper_databuf_t *paper_stripper_databuf_attach(int instance_id, int databuf_id)
+static inline hdr_stripper_databuf_t *hdr_stripper_databuf_attach(int instance_id, int databuf_id)
 {
-    return (paper_stripper_databuf_t *)hashpipe_databuf_attach(instance_id, databuf_id);
+    return (hdr_stripper_databuf_t *)hashpipe_databuf_attach(instance_id, databuf_id);
 }
 
-static inline int paper_stripper_databuf_detach(paper_stripper_databuf_t *d)
+static inline int hdr_stripper_databuf_detach(hdr_stripper_databuf_t *d)
 {
     return hashpipe_databuf_detach((hashpipe_databuf_t *)d);
 }
 
-static inline void paper_stripper_databuf_clear(paper_stripper_databuf_t *d)
+static inline void hdr_stripper_databuf_clear(hdr_stripper_databuf_t *d)
 {
     hashpipe_databuf_clear((hashpipe_databuf_t *)d);
 }
 
-static inline int paper_stripper_databuf_block_status(paper_stripper_databuf_t *d, int block_id)
+static inline int hdr_stripper_databuf_block_status(hdr_stripper_databuf_t *d, int block_id)
 {
     return hashpipe_databuf_block_status((hashpipe_databuf_t *)d, block_id);
 }
 
-static inline int paper_stripper_databuf_total_status(paper_stripper_databuf_t *d)
+static inline int hdr_stripper_databuf_total_status(hdr_stripper_databuf_t *d)
 {
     return hashpipe_databuf_total_status((hashpipe_databuf_t *)d);
 }
 
 
-int paper_stripper_databuf_wait_free(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_wait_free(hdr_stripper_databuf_t *d, int block_id);
 
-int paper_stripper_databuf_busywait_free(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_busywait_free(hdr_stripper_databuf_t *d, int block_id);
 
-int paper_stripper_databuf_wait_filled(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_wait_filled(hdr_stripper_databuf_t *d, int block_id);
 
-int paper_stripper_databuf_busywait_filled(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_busywait_filled(hdr_stripper_databuf_t *d, int block_id);
 
-int paper_stripper_databuf_set_free(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_set_free(hdr_stripper_databuf_t *d, int block_id);
 
-int paper_stripper_databuf_set_filled(paper_stripper_databuf_t *d, int block_id);
+int hdr_stripper_databuf_set_filled(hdr_stripper_databuf_t *d, int block_id);
 
 #endif // _PAPER_DATABUF_H
